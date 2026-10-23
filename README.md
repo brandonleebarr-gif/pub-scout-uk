@@ -1,9 +1,15 @@
-# Get to a Boozer
+# Get to a Boozer — up to 100 search results
 
-This is the renamed version of the latest Pub Scout build, including Google review-based filters.
+Replace all repository files with this folder's contents, preserving the netlify/functions directory.
 
-Upload all files and folders to your existing GitHub repository and commit. Netlify will deploy the changes automatically.
+Changes:
+- Backend returns up to 100 venues from the geographic tile searches (previously discarded all but 20).
+- Frontend shows all returned venues and filters/sorts them.
+- Google review keyword enrichment now works in batches of 10 instead of sending >20 IDs to the function, which would fail validation.
+- The existing GPS, postcode, Google Places API key, and geographic search strategy remain unchanged.
 
-The Google Places environment variable GOOGLE_PLACES_API_KEY is unchanged. The Netlify site URL and backend functions remain unchanged.
-
-If installed on Android, remove the old Pub Scout home-screen app and install the renamed version again to update the displayed app name.
+Limitations:
+- This is up to 100 **discovered** venues, not an exhaustive census. Google Nearby Search caps each tile at 20 results.
+- A large search can make up to 25 Google Nearby Search calls and up to 100 Google Place Details calls, with potential charges.
+- Review-based tags are populated progressively and can take time for 100 venues. Missing reviews do not imply missing amenities.
+- JavaScript syntax validated; live Google API and deployment not tested.

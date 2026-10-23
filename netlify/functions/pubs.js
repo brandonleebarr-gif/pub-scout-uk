@@ -57,7 +57,7 @@ exports.handler=async event=>{
     ? (b.rating||0)-(a.rating||0)||(b.userRatingCount||0)-(a.userRatingCount||0)||distance(a)-distance(b)
     : distance(a)-distance(b));
   const matchingCount=places.length;
-  const selected=places.slice(0,20);
+  const selected=places.slice(0,100);
   const priceMap={PRICE_LEVEL_FREE:0,PRICE_LEVEL_INEXPENSIVE:1,PRICE_LEVEL_MODERATE:2,PRICE_LEVEL_EXPENSIVE:3,PRICE_LEVEL_VERY_EXPENSIVE:4};
   const pubs=selected.map(p=>({
    id:p.id,name:p.displayName?.text||"Unnamed venue",
@@ -65,6 +65,6 @@ exports.handler=async event=>{
    rating:p.rating||null,reviews:p.userRatingCount||0,
    price:priceMap[p.priceLevel]??null,website:p.websiteUri||null,tags:{sports:p.goodForWatchingSports===true,food:p.servesLunch===true||p.servesDinner===true,garden:p.outdoorSeating===true,cheap:p.priceLevel==="PRICE_LEVEL_INEXPENSIVE"},evidence:{sports:p.goodForWatchingSports===true?"Google: good for watching sports":null,food:p.servesLunch===true||p.servesDinner===true?"Google: serves meals":null,garden:p.outdoorSeating===true?"Google: outdoor seating (not necessarily a garden)":null,cheap:p.priceLevel==="PRICE_LEVEL_INEXPENSIVE"?"Google: inexpensive price category":null}
   }));
-  return json(200,{pubs,warning:`Searched ${ok.length} of ${centers.length} areas; found ${matchingCount} distinct nearby venues and displayed the top ${pubs.length} by ${sort==='rating'?'rating':'distance'}. ${ok.length<centers.length?"Some areas could not be checked. ":""}Results may include bars; even tiled searches cannot guarantee an exhaustive highest-rated ranking. CAMRA and sports listings are linked for independent verification.`});
+  return json(200,{pubs,warning:`Searched ${ok.length} of ${centers.length} areas; found ${matchingCount} distinct nearby venues and returned ${pubs.length} by ${sort==='rating'?'rating':'distance'}. ${ok.length<centers.length?"Some areas could not be checked. ":""}Results may include bars; even tiled searches cannot guarantee an exhaustive highest-rated ranking. CAMRA and sports listings are linked for independent verification.`});
  }catch(e){return json(502,{error:e.name==="AbortError"?"Google Places took too long to respond. Try again.":e.message})}
 };
