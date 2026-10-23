@@ -1,11 +1,15 @@
-# Pub Scout UK
+# Pub Scout UK — Google Places version
 
-## Deployment
-1. Create a free Netlify account at https://app.netlify.com.
-2. Deploy this project folder through Netlify Drop (drag the unzipped folder) or use a Git repository for automatic redeploys. Keep the `netlify/functions/pubs.js` folder structure intact.
-3. Open the HTTPS address. Enter a postcode or allow GPS.
-4. Optional Google ratings: In Google Cloud Console create a project, attach a billing account, enable **Places API (New)**, create an API key, restrict the key to the Places API. In Netlify Site configuration > Environment variables, add `GOOGLE_PLACES_API_KEY` with the key value. Redeploy. Do not paste the key into HTML or Git.
-5. Set API quotas and billing alerts. Google ratings are optional and will not be shown if the key is absent.
+1. Upload the CONTENTS of this folder to the root of your GitHub repository.
+2. Netlify automatically deploys the commit.
+3. Netlify dashboard > Project configuration > Environment variables > Add a variable.
+   Key: GOOGLE_PLACES_API_KEY
+   Value: your Google Cloud Places API (New) key.
+   Scope: Functions / all scopes; make sure the variable is available to serverless functions.
+4. Trigger a fresh Netlify deploy after adding the variable.
+5. Test SW1A 1AA with a ¼-mile radius.
 
-## Limitations
-OpenStreetMap Overpass public servers are rate-limited and not guaranteed available. Netlify function execution limits can affect large-radius searches. Google Nearby Search returns at most 20 places per request and matching is approximate, so not all pubs will have Google ratings. Google priceLevel is a rough venue tier, not the cost of a pint. The Google Places API has pay-as-you-go billing; review current prices and terms before enabling it. Review Google Maps Platform display, caching and attribution terms before public distribution. Filters are based on mapped evidence, not independently verified facts. Google Places results cannot be assumed complete and Google data must be used per applicable licensing terms.
+Google Cloud: enable Places API (New), attach a billing account, restrict the key to Places API (New), configure quotas and budget alerts.
+Do not put the key in index.html, GitHub, or messages.
+Nearby Search returns a maximum of 20 results per request. The bar type may include non-pub venues.
+Google ratings, review counts, and price levels are API data; actual pint prices, sports, and tap lists are not provided.

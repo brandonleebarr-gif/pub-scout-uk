@@ -1,3 +1,35 @@
-const servers=['https://overpass.private.coffee/api/interpreter','https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
-async function fetchTimed(url,opts={},ms=7000){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{...opts,signal:c.signal});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(t)}}
-exports.handler=async event=>{try{let q=event.queryStringParameters||{},lat=Number(q.lat),lon=Number(q.lon),miles=Number(q.radius||1);if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180||![.25,.5,1,5,10].includes(miles))return {statusCode:400,body:JSON.stringify({error:'Invalid coordinates or radius'})};let radius=Math.round(miles*1609.344),query=`[out:json][timeout:8];(nwr["amenity"="pub"](around:${radius},${lat},${lon}););out center tags;`;let osm;try{osm=await Promise.any(servers.map(server=>fetchTimed(server,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({data:query}).toString()},8500)))}catch(e){throw Error('Pub data providers did not respond within 9 seconds. Please try again shortly.')}let pubs=(osm.elements||[]).map(p=>{let t=p.tags||{},a=[t['addr:housenumber'],t['addr:street'],t['addr:city']].filter(Boolean).join(' ');return {id:p.type+'/'+p.id,name:t.name||'Unnamed pub',lat:p.lat??p.center?.lat,lon:p.lon??p.center?.lon,address:a,tags:t,website:t.website||t['contact:website']||null}}).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon));let warning='';if(process.env.GOOGLE_PLACES_API_KEY){try{let r=await fetchTimed('https://places.googleapis.com/v1/places:searchNearby',{method:'POST',headers:{'Content-Type':'application/json','X-Goog-Api-Key':process.env.GOOGLE_PLACES_API_KEY,'X-Goog-FieldMask':'places.displayName,places.location,places.rating,places.userRatingCount,places.priceLevel,places.formattedAddress'},body:JSON.stringify({includedTypes:['bar'],maxResultCount:20,rankPreference:'DISTANCE',locationRestriction:{circle:{center:{latitude:lat,longitude:lon},radius:Math.min(radius,50000)}}})},5500);for(let p of pubs){let match=(r.places||[]).find(g=>{let a=g.location;if(!a)return false;let dx=(a.latitude-p.lat)*111000,dy=(a.longitude-p.lon)*70000;return Math.hypot(dx,dy)<70&&g.displayName?.text?.toLowerCase().replace(/^the /,'')===p.name.toLowerCase().replace(/^the /,'')});if(match){p.rating=match.rating;p.reviews=match.userRatingCount;p.price=({'PRICE_LEVEL_INEXPENSIVE':1,'PRICE_LEVEL_MODERATE':2,'PRICE_LEVEL_EXPENSIVE':3,'PRICE_LEVEL_VERY_EXPENSIVE':4})[match.priceLevel]}}}catch(e){warning='Google ratings temporarily unavailable.'}}return {statusCode:200,headers:{'Content-Type':'application/json','Cache-Control':'public,max-age=300'},body:JSON.stringify({pubs,warning})}}catch(e){return {statusCode:502,headers:{'Content-Type':'application/json'},body:JSON.stringify({error:e.message})}}};
+const json=(code,obj)=>({statusCode:code,headers:{"Content-Type":"application/json","Cache-Control":"no-store"},body:JSON.stringify(obj)});
+async function getGoogle(lat,lon,radius,key){
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),12000);
+ try{
+  const response=await fetch("https://places.googleapis.com/v1/places:searchNearby",{
+   method:"POST",signal:controller.signal,
+   headers:{"Content-Type":"application/json","X-Goog-Api-Key":key,"X-Goog-FieldMask":"places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.priceLevel,places.websiteUri,places.primaryType"},
+   body:JSON.stringify({includedTypes:["bar"],maxResultCount:20,rankPreference:"DISTANCE",
+    locationRestriction:{circle:{center:{latitude:lat,longitude:lon},radius:Math.min(radius,50000)}}})
+  });
+  const data=await response.json();
+  if(!response.ok)throw Error(data.error?.message||"Google Places HTTP "+response.status);
+  return data.places||[];
+ }finally{clearTimeout(timer)}
+}
+exports.handler=async event=>{
+ try{
+  const q=event.queryStringParameters||{};
+  if(q.lat==null||q.lon==null)return json(400,{error:"Coordinates missing"});
+  const lat=Number(q.lat),lon=Number(q.lon),miles=Number(q.radius||1);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180||![.25,.5,1,5,10].includes(miles))return json(400,{error:"Invalid coordinates or radius"});
+  const key=process.env.GOOGLE_PLACES_API_KEY;
+  if(!key)return json(503,{error:"Google Places is not connected yet. Add GOOGLE_PLACES_API_KEY to Netlify environment variables and redeploy."});
+  const places=await getGoogle(lat,lon,miles*1609.344,key);
+  const priceMap={PRICE_LEVEL_FREE:0,PRICE_LEVEL_INEXPENSIVE:1,PRICE_LEVEL_MODERATE:2,PRICE_LEVEL_EXPENSIVE:3,PRICE_LEVEL_VERY_EXPENSIVE:4};
+  const pubs=places.filter(p=>p.location).map(p=>({
+   id:p.id,name:p.displayName?.text||"Unnamed venue",
+   lat:p.location.latitude,lon:p.location.longitude,address:p.formattedAddress||"",
+   rating:p.rating||null,reviews:p.userRatingCount||0,
+   price:priceMap[p.priceLevel]??null,website:p.websiteUri||null,tags:{}
+  }));
+  return json(200,{pubs,warning:pubs.length===20?"Google returned the nearest 20 places. Narrow the radius or change your location to explore more.":"Google lists bars as well as pubs; some results may not be traditional pubs."});
+ }catch(e){return json(502,{error:e.name==="AbortError"?"Google Places took too long to respond. Try again.":e.message})}
+};
