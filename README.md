@@ -1,15 +1,9 @@
-# Pub Scout UK — Google Places version
+# Pub Scout — verified filter data update
 
-1. Upload the CONTENTS of this folder to the root of your GitHub repository.
-2. Netlify automatically deploys the commit.
-3. Netlify dashboard > Project configuration > Environment variables > Add a variable.
-   Key: GOOGLE_PLACES_API_KEY
-   Value: your Google Cloud Places API (New) key.
-   Scope: Functions / all scopes; make sure the variable is available to serverless functions.
-4. Trigger a fresh Netlify deploy after adding the variable.
-5. Test SW1A 1AA with a ¼-mile radius.
+Upload all files into your GitHub repository, preserving `netlify/functions/pubs.js`. Commit and wait for Netlify deployment. Refresh on your phone.
 
-Google Cloud: enable Places API (New), attach a billing account, restrict the key to Places API (New), configure quotas and budget alerts.
-Do not put the key in index.html, GitHub, or messages.
-Nearby Search returns a maximum of 20 results per request. The bar type may include non-pub venues.
-Google ratings, review counts, and price levels are API data; actual pint prices, sports, and tap lists are not provided.
+New Google Places (New) fields: goodForWatchingSports, outdoorSeating, servesLunch, servesDinner, priceRange. Google fields may be absent, so only explicit true attributes are matched. Outdoor seating is NOT necessarily a beer garden. The craft, real ale, dive, and quiet filters remain unsupported until independent sources are added.
+
+IMPORTANT: These fields activate the Nearby Search Enterprise + Atmosphere pricing tier. Review your Google Cloud billing, quota and trial-credit limits before deploying. The £226 trial credit expires 22 Jan 2027. Google Places Nearby Search returns at most 20 venues, and current discovery includes bars (including some non-pubs).
+
+No Google API key needs to be added to GitHub; the existing Netlify environment variable is used.

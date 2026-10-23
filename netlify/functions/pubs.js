@@ -5,7 +5,7 @@ async function getGoogle(lat,lon,radius,key){
  try{
   const response=await fetch("https://places.googleapis.com/v1/places:searchNearby",{
    method:"POST",signal:controller.signal,
-   headers:{"Content-Type":"application/json","X-Goog-Api-Key":key,"X-Goog-FieldMask":"places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.priceLevel,places.websiteUri,places.primaryType"},
+   headers:{"Content-Type":"application/json","X-Goog-Api-Key":key,"X-Goog-FieldMask":"places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.priceLevel,places.websiteUri,places.primaryType,places.goodForWatchingSports,places.outdoorSeating,places.servesLunch,places.servesDinner,places.priceRange"},
    body:JSON.stringify({includedTypes:["bar"],maxResultCount:20,rankPreference:"DISTANCE",
     locationRestriction:{circle:{center:{latitude:lat,longitude:lon},radius:Math.min(radius,50000)}}})
   });
@@ -28,8 +28,8 @@ exports.handler=async event=>{
    id:p.id,name:p.displayName?.text||"Unnamed venue",
    lat:p.location.latitude,lon:p.location.longitude,address:p.formattedAddress||"",
    rating:p.rating||null,reviews:p.userRatingCount||0,
-   price:priceMap[p.priceLevel]??null,website:p.websiteUri||null,tags:{}
+   price:priceMap[p.priceLevel]??null,website:p.websiteUri||null,tags:{sports:p.goodForWatchingSports===true,food:p.servesLunch===true||p.servesDinner===true,garden:p.outdoorSeating===true,cheap:p.priceLevel==="PRICE_LEVEL_INEXPENSIVE"},evidence:{sports:p.goodForWatchingSports===true?"Google: good for watching sports":null,food:p.servesLunch===true||p.servesDinner===true?"Google: serves meals":null,garden:p.outdoorSeating===true?"Google: outdoor seating (not necessarily a garden)":null,cheap:p.priceLevel==="PRICE_LEVEL_INEXPENSIVE"?"Google: inexpensive price category":null}
   }));
-  return json(200,{pubs,warning:pubs.length===20?"Google returned the nearest 20 places. Narrow the radius or change your location to explore more.":"Google lists bars as well as pubs; some results may not be traditional pubs."});
+  return json(200,{pubs,warning:pubs.length===20?"Google returned the nearest 20 places. Narrow the radius or change your location to explore more.":"Google lists bars as well as pubs; some results may not be traditional pubs. Sports, food and outdoor seating reflect Google attributes when supplied."});
  }catch(e){return json(502,{error:e.name==="AbortError"?"Google Places took too long to respond. Try again.":e.message})}
 };
