@@ -1,9 +1,11 @@
-# Pub Scout — verified filter data update
+# Pub Scout — expanded discovery (v2)
 
-Upload all files into your GitHub repository, preserving `netlify/functions/pubs.js`. Commit and wait for Netlify deployment. Refresh on your phone.
+Replace your GitHub repo files with the contents of this ZIP and commit. Netlify will redeploy. Keep your existing GOOGLE_PLACES_API_KEY in Netlify.
 
-New Google Places (New) fields: goodForWatchingSports, outdoorSeating, servesLunch, servesDinner, priceRange. Google fields may be absent, so only explicit true attributes are matched. Outdoor seating is NOT necessarily a beer garden. The craft, real ale, dive, and quiet filters remain unsupported until independent sources are added.
+New: for searches greater than 1/2 mile, five overlapping Google Places Nearby Search (New) calls run in parallel, deduplicated by Google Place ID and filtered to the selected radius. This can find more than 20 pubs, but is not guaranteed exhaustive and uses up to 5 billable API requests per search. Configure API quotas/budget alerts.
 
-IMPORTANT: These fields activate the Nearby Search Enterprise + Atmosphere pricing tier. Review your Google Cloud billing, quota and trial-credit limits before deploying. The £226 trial credit expires 22 Jan 2027. Google Places Nearby Search returns at most 20 venues, and current discovery includes bars (including some non-pubs).
+CAMRA: links to WhatPub searches are provided, but CAMRA records are NOT imported. Obtain permission/license or an authorised feed before importing data.
 
-No Google API key needs to be added to GitHub; the existing Netlify environment variable is used.
+Sports: Google goodForWatchingSports is supported; FANZO link is provided for fixture-level checks. Sports provider data is NOT imported. Contact providers about an API/feed and redistribution terms.
+
+Caution: Google bar search can include non-pubs. Test and monitor Netlify function logs and Google billing.

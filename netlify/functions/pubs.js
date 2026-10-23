@@ -1,7 +1,7 @@
 const json=(code,obj)=>({statusCode:code,headers:{"Content-Type":"application/json","Cache-Control":"no-store"},body:JSON.stringify(obj)});
 async function getGoogle(lat,lon,radius,key){
  const controller=new AbortController();
- const timer=setTimeout(()=>controller.abort(),12000);
+ const timer=setTimeout(()=>controller.abort(),8500);
  try{
   const response=await fetch("https://places.googleapis.com/v1/places:searchNearby",{
    method:"POST",signal:controller.signal,
@@ -22,7 +22,27 @@ exports.handler=async event=>{
   if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180||![.25,.5,1,5,10].includes(miles))return json(400,{error:"Invalid coordinates or radius"});
   const key=process.env.GOOGLE_PLACES_API_KEY;
   if(!key)return json(503,{error:"Google Places is not connected yet. Add GOOGLE_PLACES_API_KEY to Netlify environment variables and redeploy."});
-  const places=await getGoogle(lat,lon,miles*1609.344,key);
+  const radius=miles*1609.344;
+  // Nearby Search (New) is limited to 20 results per call. For larger areas,
+  // query overlapping smaller circles and de-duplicate Google Place IDs.
+  const delta=radius/111320;
+  const cos=Math.max(.15,Math.cos(lat*Math.PI/180));
+  const centers=miles<=.5?[[lat,lon,radius]]:[
+    [lat,lon,radius*.72],
+    [lat+delta*.52,lon,radius*.60],
+    [lat-delta*.52,lon,radius*.60],
+    [lat,lon+delta*.52/cos,radius*.60],
+    [lat,lon-delta*.52/cos,radius*.60]
+  ];
+  const responses=await Promise.allSettled(centers.map(c=>getGoogle(c[0],c[1],c[2],key)));
+  const ok=responses.filter(r=>r.status==='fulfilled');
+  if(!ok.length)throw Error(responses[0].reason?.message||'Google Places unavailable');
+  const seen=new Map();
+  for(const result of ok)for(const place of result.value){if(place.id&&!seen.has(place.id))seen.set(place.id,place)}
+  const distance=(p)=>{const toRad=Math.PI/180,a=(p.location.latitude-lat)*toRad,b=(p.location.longitude-lon)*toRad;
+    const h=Math.sin(a/2)**2+Math.cos(lat*toRad)*Math.cos(p.location.latitude*toRad)*Math.sin(b/2)**2;
+    return 12742000*Math.asin(Math.sqrt(h));};
+  const places=[...seen.values()].filter(p=>p.location&&distance(p)<=radius).sort((a,b)=>distance(a)-distance(b));
   const priceMap={PRICE_LEVEL_FREE:0,PRICE_LEVEL_INEXPENSIVE:1,PRICE_LEVEL_MODERATE:2,PRICE_LEVEL_EXPENSIVE:3,PRICE_LEVEL_VERY_EXPENSIVE:4};
   const pubs=places.filter(p=>p.location).map(p=>({
    id:p.id,name:p.displayName?.text||"Unnamed venue",
@@ -30,6 +50,6 @@ exports.handler=async event=>{
    rating:p.rating||null,reviews:p.userRatingCount||0,
    price:priceMap[p.priceLevel]??null,website:p.websiteUri||null,tags:{sports:p.goodForWatchingSports===true,food:p.servesLunch===true||p.servesDinner===true,garden:p.outdoorSeating===true,cheap:p.priceLevel==="PRICE_LEVEL_INEXPENSIVE"},evidence:{sports:p.goodForWatchingSports===true?"Google: good for watching sports":null,food:p.servesLunch===true||p.servesDinner===true?"Google: serves meals":null,garden:p.outdoorSeating===true?"Google: outdoor seating (not necessarily a garden)":null,cheap:p.priceLevel==="PRICE_LEVEL_INEXPENSIVE"?"Google: inexpensive price category":null}
   }));
-  return json(200,{pubs,warning:pubs.length===20?"Google returned the nearest 20 places. Narrow the radius or change your location to explore more.":"Google lists bars as well as pubs; some results may not be traditional pubs. Sports, food and outdoor seating reflect Google attributes when supplied."});
+  return json(200,{pubs,warning:`Searched ${ok.length} of ${centers.length} areas; found ${pubs.length} distinct nearby venues. ${ok.length<centers.length?"Some areas could not be checked. ":""}Results may include bars and are not exhaustive. CAMRA and sports listings are linked for independent verification.`});
  }catch(e){return json(502,{error:e.name==="AbortError"?"Google Places took too long to respond. Try again.":e.message})}
 };
