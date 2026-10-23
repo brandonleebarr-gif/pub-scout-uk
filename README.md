@@ -1,10 +1,9 @@
-# Pub Scout — Google review-based filters
+# Get to a Boozer
 
-Upload all project files to GitHub, preserving `netlify/functions/review-tags.js` and `netlify/functions/pubs.js`.
-Netlify environment variable `GOOGLE_PLACES_API_KEY` must already be configured.
-Review-based tags load after the normal search results appear.
-Google Place Details requests for the displayed pubs may incur extra API costs (up to 20 additional requests per search).
-Google Places generally returns only a limited sample of reviews per venue, not all reviews.
-Filters are keyword-based estimates, including positive mentions even when reviews contain negation.
-Results that were not in the displayed top 20 are not examined for review tags.
-No CAMRA or FANZO data is scraped.
+This is the renamed version of the latest Pub Scout build, including Google review-based filters.
+
+Upload all files and folders to your existing GitHub repository and commit. Netlify will deploy the changes automatically.
+
+The Google Places environment variable GOOGLE_PLACES_API_KEY is unchanged. The Netlify site URL and backend functions remain unchanged.
+
+If installed on Android, remove the old Pub Scout home-screen app and install the renamed version again to update the displayed app name.
