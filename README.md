@@ -1,11 +1,10 @@
-# Pub Scout — expanded discovery (v2)
+# Pub Scout — Google review-based filters
 
-Replace your GitHub repo files with the contents of this ZIP and commit. Netlify will redeploy. Keep your existing GOOGLE_PLACES_API_KEY in Netlify.
-
-New: for searches greater than 1/2 mile, five overlapping Google Places Nearby Search (New) calls run in parallel, deduplicated by Google Place ID and filtered to the selected radius. This can find more than 20 pubs, but is not guaranteed exhaustive and uses up to 5 billable API requests per search. Configure API quotas/budget alerts.
-
-CAMRA: links to WhatPub searches are provided, but CAMRA records are NOT imported. Obtain permission/license or an authorised feed before importing data.
-
-Sports: Google goodForWatchingSports is supported; FANZO link is provided for fixture-level checks. Sports provider data is NOT imported. Contact providers about an API/feed and redistribution terms.
-
-Caution: Google bar search can include non-pubs. Test and monitor Netlify function logs and Google billing.
+Upload all project files to GitHub, preserving `netlify/functions/review-tags.js` and `netlify/functions/pubs.js`.
+Netlify environment variable `GOOGLE_PLACES_API_KEY` must already be configured.
+Review-based tags load after the normal search results appear.
+Google Place Details requests for the displayed pubs may incur extra API costs (up to 20 additional requests per search).
+Google Places generally returns only a limited sample of reviews per venue, not all reviews.
+Filters are keyword-based estimates, including positive mentions even when reviews contain negation.
+Results that were not in the displayed top 20 are not examined for review tags.
+No CAMRA or FANZO data is scraped.
